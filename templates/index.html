@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WhatsApp Viewer</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<h2>WhatsApp Chat Viewer</h2>
+<form enctype="multipart/form-data" action="/upload" method="post">
+    <input type="file" name="chatfile" required>
+    <input type="submit" value="View Chat">
+</form>
+
+{{if .}}
+<div class="chat">
+    {{range .}}
+    <div class="msg-wrapper {{if eq .Sender "~KaKarot"}}right{{else}}left{{end}}">
+    <div class="msg">
+        <div class="meta"><strong>{{.Sender}}</strong> <small>{{.Time}}</small></div>
+        <div class="content">{{.Content}}</div>
+    </div>
+</div>
+{{end}}
+</div>
+{{end}}
+</body>
+</html>

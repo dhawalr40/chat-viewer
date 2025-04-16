@@ -1,0 +1,51 @@
+body {
+    font-family: Arial, sans-serif;
+    padding: 20px;
+    background: #f4f4f4;
+}
+
+form {
+    margin-bottom: 20px;
+}
+
+.chat {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.msg-wrapper {
+    display: flex;
+    max-width: 80%;
+}
+
+.msg-wrapper.left {
+    justify-content: flex-start;
+}
+
+.msg-wrapper.right {
+    justify-content: flex-end;
+    margin-left: auto;
+}
+
+.msg {
+    padding: 10px;
+    border-radius: 10px;
+    background-color: #ffffff;
+    max-width: 70%;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.msg-wrapper.right .msg {
+    background-color: #dcf8c6;
+}
+
+.meta {
+    font-size: 0.8em;
+    color: #555;
+    margin-bottom: 4px;
+}
+
+.content {
+    white-space: pre-wrap;
+}
