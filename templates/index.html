@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>WhatsApp Viewer</title>
+    <title>WhatsApp Chat Viewer</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
@@ -11,17 +11,51 @@
     <input type="submit" value="View Chat">
 </form>
 
-{{if .}}
-<div class="chat">
-    {{range .}}
-    <div class="msg-wrapper {{if eq .Sender "~KaKarot"}}right{{else}}left{{end}}">
-    <div class="msg">
-        <div class="meta"><strong>{{.Sender}}</strong> <small>{{.Time}}</small></div>
-        <div class="content">{{.Content}}</div>
-    </div>
-</div>
-{{end}}
-</div>
-{{end}}
+<div id="chat" class="chat"></div>
+<div id="loading" style="text-align:center; padding:10px;">Loading...</div>
+
+<script>
+    let page = 0;
+    let loading = false;
+    let done = false;
+
+    async function loadMessages() {
+        if (loading || done) return;
+        loading = true;
+        document.getElementById("loading").style.display = "block";
+        const res = await fetch("/messages?page=" + page);
+        const msgs = await res.json();
+        if (msgs.length === 0) {
+            done = true;
+            document.getElementById("loading").textContent = "No more messages.";
+            return;
+        }
+
+        const chat = document.getElementById("chat");
+        msgs.forEach(m => {
+            const wrapper = document.createElement("div");
+            wrapper.className = "msg-wrapper " + (m.sender === "You" ? "right" : "left");
+
+            const msgDiv = document.createElement("div");
+            msgDiv.className = "msg";
+            msgDiv.innerHTML = `<div class="meta"><strong>${m.sender}</strong> <small>${m.time}</small></div><div class="content">${m.content}</div>`;
+            wrapper.appendChild(msgDiv);
+            chat.appendChild(wrapper);
+        });
+
+        page++;
+        loading = false;
+        document.getElementById("loading").style.display = "none";
+    }
+
+    window.addEventListener("scroll", () => {
+        if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 100) {
+            loadMessages();
+        }
+    });
+
+    // Initial load
+    loadMessages();
+</script>
 </body>
 </html>

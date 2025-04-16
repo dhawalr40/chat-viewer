@@ -2,24 +2,31 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"html/template"
 	"net/http"
-	"os"
-	"path/filepath"
 	"regexp"
+	"strconv"
+	"sync"
 )
 
 type Message struct {
-	Time    string
-	Sender  string
-	Content string
+	Time    string `json:"time"`
+	Sender  string `json:"sender"`
+	Content string `json:"content"`
 }
 
-var templates = template.Must(template.ParseFiles("templates/index.html"))
+var (
+	templates = template.Must(template.ParseFiles("templates/index.html"))
+	messages  []Message
+	lock      sync.Mutex
+	yourName  = "~KaKarot" // or your actual name in chat
+)
 
 func main() {
 	http.HandleFunc("/", uploadForm)
 	http.HandleFunc("/upload", handleUpload)
+	http.HandleFunc("/messages", loadMessages)
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 	http.ListenAndServe(":8080", nil)
 }
@@ -29,33 +36,56 @@ func uploadForm(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleUpload(w http.ResponseWriter, r *http.Request) {
-	r.ParseMultipartForm(10 << 20) // 10MB limit
-	file, handler, err := r.FormFile("chatfile")
+	r.ParseMultipartForm(10 << 20)
+	file, _, err := r.FormFile("chatfile")
 	if err != nil {
 		http.Error(w, "File error", http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
 
-	tempPath := filepath.Join(os.TempDir(), handler.Filename)
-	tempFile, _ := os.Create(tempPath)
-	defer tempFile.Close()
-	scanner := bufio.NewScanner(file)
+	lock.Lock()
+	defer lock.Unlock()
+	messages = nil
 
-	var messages []Message
+	scanner := bufio.NewScanner(file)
 	regex := regexp.MustCompile(`^\[(.*?)\] (.*?): (.*)$`)
 
 	for scanner.Scan() {
 		line := scanner.Text()
 		match := regex.FindStringSubmatch(line)
 		if len(match) == 4 {
+			sender := match[2]
+			if sender == yourName {
+				sender = "You"
+			}
 			messages = append(messages, Message{
 				Time:    match[1],
-				Sender:  match[2],
+				Sender:  sender,
 				Content: match[3],
 			})
 		}
 	}
 
-	templates.Execute(w, messages)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func loadMessages(w http.ResponseWriter, r *http.Request) {
+	lock.Lock()
+	defer lock.Unlock()
+
+	pageSize := 20
+	pageStr := r.URL.Query().Get("page")
+	page, _ := strconv.Atoi(pageStr)
+	start := page * pageSize
+	end := start + pageSize
+
+	if start > len(messages) {
+		start = len(messages)
+	}
+	if end > len(messages) {
+		end = len(messages)
+	}
+
+	json.NewEncoder(w).Encode(messages[start:end])
 }
